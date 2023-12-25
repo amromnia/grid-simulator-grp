@@ -1,13 +1,32 @@
+from abc import abstractmethod
 import pickle
 import threading
 import socket
-from typing import Any
+from typing import Any, Callable
+
+
+def handle_power(data: dict[str, Any]) -> dict[str, Any]:
+    gen, con = data["generation"], data["consumption"]
+    surplus = gen - con
+    return {"surplus": surplus}
+
+
+def handle_trade(data: dict[str, Any]) -> None:
+    pass
+
+
+PROCESS_TYPES: dict[str, Callable[[dict[str, Any]], Any]] = {
+    "power": handle_power,
+    "trade": handle_trade,
+}
 
 
 class Meter:
     s: socket.socket
 
-    def __init__(self, s: socket.socket, server_addr: tuple[str, int], buf_size: int) -> None:
+    def __init__(
+        self, s: socket.socket, server_addr: tuple[str, int], buf_size: int
+    ) -> None:
         self.s = s
         self.s.connect(server_addr)
         self.buffer_size = buf_size
@@ -23,11 +42,8 @@ class Meter:
             return
         data: dict[str, Any] = pickle.loads(recv_stream)
         data_type = data["type"]
-        match data_type:
-            case "power":
-                self._handle_power(data)
-            case _:
-                print("Invalid message type")
+        res = PROCESS_TYPES[data_type](data)
+        self.s.sendall(pickle.dumps({"from": self.s.getsockname(), "type": data_type,"response": res}))
 
     def _handle_power(self, data) -> None:
         gen, con = data["generation"], data["consumption"]

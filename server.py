@@ -23,7 +23,12 @@ def client_connection(conn, addr, results):
     gen, con = data_generator(t)
     conn.sendall(pickle.dumps({"type": "power", "generation": gen, "consumption": con}))
     data = pickle.loads(conn.recv(1024))
-    results[addr] = data["surplus"]
+    response_type = data["type"]
+    match response_type:
+        case "power":
+            results[addr] = data["response"]["surplus"]
+        case "trade":
+            return
 
 
 def moment(
