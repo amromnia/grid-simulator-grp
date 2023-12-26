@@ -2,8 +2,10 @@ from abc import abstractmethod
 import pickle
 import threading
 import socket
-from typing import Any, Callable
+from typing import Any, Callable, TypedDict, TypeAlias
 
+
+MeterProcess: TypeAlias = Callable[[dict[str, Any]], Any]
 
 def handle_power(data: dict[str, Any]) -> dict[str, Any]:
     gen, con = data["generation"], data["consumption"]
@@ -15,10 +17,15 @@ def handle_trade(data: dict[str, Any]) -> None:
     pass
 
 
-PROCESS_TYPES: dict[str, Callable[[dict[str, Any]], Any]] = {
+PROCESS_TYPES: dict[str, MeterProcess] = {
     "power": handle_power,
     "trade": handle_trade,
 }
+
+class Message(TypedDict):
+    from_: tuple[str, int]
+    type: str
+    response: dict
 
 
 class Meter:
@@ -43,12 +50,8 @@ class Meter:
         data: dict[str, Any] = pickle.loads(recv_stream)
         data_type = data["type"]
         res = PROCESS_TYPES[data_type](data)
-        self.s.sendall(pickle.dumps({"from": self.s.getsockname(), "type": data_type,"response": res}))
-
-    def _handle_power(self, data) -> None:
-        gen, con = data["generation"], data["consumption"]
-        surplus = gen - con
-        self.s.sendall(pickle.dumps({"from": self.s.getsockname(), "surplus": surplus}))
+        msg: Message = {"from_": self.s.getsockname(), "type": data_type, "response": res}
+        self.s.sendall(pickle.dumps(msg))
 
     def is_connected(self) -> bool:
         return self.s.fileno() != -1
