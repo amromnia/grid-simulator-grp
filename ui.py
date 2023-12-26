@@ -4,10 +4,7 @@ import socket
 import threading
 import pickle
 from src.core.msg_types import UIUpdate
-
-ADDRESS: tuple[Literal["localhost"], Literal[1235]] = ("localhost", 1235)
-N = 12
-
+from src.config import cfg
 
 def trade(window: MainWindow.MainWindow, msg: UIUpdate) -> None:
     return None
@@ -36,7 +33,7 @@ def update_ui(window: MainWindow.MainWindow, conn) -> None:
 
 if __name__ == "__main__":
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(ADDRESS)
+    s.bind(cfg.ui_address)
     s.listen()
     print("UI server started")
     print("Waiting for `server.py` to start...")

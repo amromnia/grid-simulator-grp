@@ -1,11 +1,8 @@
 import socket
-import threading
 from typing import Literal
 from src.core.meter import Meter
-
-N = 12
+from src.config import cfg
 BUFFER_SIZE = 512
-SERVER_ADDRESS: tuple[Literal["localhost"], Literal[1234]] = ("localhost", 1234)
 
 
 def mksocket() -> socket.socket:
@@ -14,7 +11,7 @@ def mksocket() -> socket.socket:
 
 if __name__ == "__main__":
     meters: list[Meter] = [
-        Meter(mksocket(), SERVER_ADDRESS, BUFFER_SIZE) for _ in range(N)
+        Meter(mksocket(), cfg.server_address, BUFFER_SIZE) for _ in range(cfg.n_meters)
     ]
     while True:
         threads = [m.mkthread() for m in meters]
